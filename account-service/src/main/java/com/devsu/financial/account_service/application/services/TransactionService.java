@@ -99,6 +99,12 @@ public class TransactionService {
     }
 
     public Transaction fallbackCreate(Transaction transaction, Throwable ex) {
+        if (ex instanceof InsufficientFundsException
+            || ex instanceof BadRequestException
+            || ex instanceof NotFoundException) {
+            throw (RuntimeException) ex;
+        }
+    
         System.err.println("Fallback triggered for transaction: " + transaction.getAccountId());
         System.err.println("Error: " + ex.getMessage());
     

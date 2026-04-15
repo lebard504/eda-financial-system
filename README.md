@@ -557,12 +557,193 @@ KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
 Run tests:
 
 ```
+cd respective-service
 mvn clean test
 ```
 
 Types:
 - Unit tests (Mockito)
 - Integration tests (service layer)
+
+---
+## Error Handling and Response Structure
+
+The system implements a centralized exception handling mechanism using `@RestControllerAdvice` to ensure consistent API responses across all endpoints.
+
+All exceptions are intercepted and transformed into a unified response format using `ResponseBuilder`.
+
+---
+
+### Standard Response Format
+
+```json
+{
+  "success": boolean,
+  "code": number,
+  "message": "string",
+  "payload": any,
+  "errors": any
+}
+```
+
+---
+
+### Successful Response Example
+
+```json
+{
+  "success": true,
+  "code": 200,
+  "message": "Report generated successfully",
+  "payload": [...],
+  "errors": null
+}
+```
+
+---
+
+### Error Response Structure
+
+```json
+{
+  "success": false,
+  "code": number,
+  "message": "string",
+  "payload": null,
+  "errors": any
+}
+```
+
+---
+
+## Exception Handling Strategy
+
+The system distinguishes between:
+
+- **Validation errors**
+- **Business rule violations**
+- **Security/authentication errors**
+- **Infrastructure/database errors**
+- **Unexpected system failures**
+
+Each type is mapped to a specific HTTP status code.
+
+---
+
+## Exception Mapping
+
+| Exception                               | HTTP Code | Description                                |
+|----------------------------------------|----------|--------------------------------------------|
+| MethodArgumentNotValidException        | 400      | Request validation error                   |
+| HttpMessageNotReadableException        | 400      | Invalid JSON/body format                   |
+| InvalidStateTransitionException        | 400      | Invalid business state                     |
+| NotFoundException                      | 404      | Resource not found                         |
+| NoHandlerFoundException                | 404      | Endpoint not found                         |
+| UnauthorizedException                  | 401      | Unauthorized access                        |
+| InvalidTokenException                  | 401      | Invalid authentication token               |
+| DataIntegrityViolationException        | 409      | Database constraint violation              |
+| DuplicateKeyException                  | 409      | Duplicate key detected                     |
+| InsufficientFundsException             | 422      | Business validation error                  |
+| HttpRequestMethodNotSupportedException | 405      | HTTP method not allowed                    |
+| ApplicationException                   | 500      | Controlled application error               |
+| Exception                              | 500      | Unexpected system error                    |
+
+---
+
+## Validation Error Response
+
+```json
+{
+  "success": false,
+  "code": 400,
+  "message": "Validation failed",
+  "payload": null,
+  "errors": [
+    {
+      "field": "name",
+      "message": "must not be null"
+    }
+  ]
+}
+```
+
+---
+
+## Business Error Example
+
+```json
+{
+  "success": false,
+  "code": 422,
+  "message": "Insufficient funds",
+  "payload": null,
+  "errors": null
+}
+```
+
+---
+
+## Not Found Example
+
+```json
+{
+  "success": false,
+  "code": 404,
+  "message": "Account not found",
+  "payload": null,
+  "errors": null
+}
+```
+
+---
+
+## Conflict Error Example
+
+```json
+{
+  "success": false,
+  "code": 409,
+  "message": "Duplicate value for field: identification",
+  "payload": null,
+  "errors": null
+}
+```
+
+---
+
+## Internal Error (Fallback / Resilience)
+
+```json
+{
+  "success": false,
+  "code": 500,
+  "message": "Application error: Service temporarily unavailable",
+  "payload": null,
+  "errors": null
+}
+```
+
+---
+
+## Design Approach
+
+- Centralized exception handling using `@RestControllerAdvice`
+- Consistent response contract via `ResponseBuilder`
+- Clear separation between:
+  - Validation errors
+  - Business errors
+  - Technical errors
+- Integration with resilience layer (CircuitBreaker / Retry fallback)
+
+---
+
+## Architectural Patterns Applied
+
+- Global Exception Handler Pattern
+- Standard API Response Wrapper Pattern
+- Business vs Technical Exception Separation
+- Fail-Fast Validation Strategy
+- Resilient Error Handling (aligned with Event-Driven Architecture)
 
 ---
 
@@ -618,3 +799,11 @@ Before executing requests, you must configure the following environment variable
 - Dead Letter Queues (DLQ) for Kafka error handling
 - Schema Registry for event versioning
 - CI/CD pipelines with automated testing and deployment
+
+
+---
+
+
+```
+GitHub Url: https://github.com/lebard504/eda-financial-system
+```
