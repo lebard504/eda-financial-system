@@ -1,0 +1,77 @@
+spring:
+  application:
+    name: account-service
+
+  datasource:
+    url: jdbc:h2:mem:account-db
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    defer-datasource-initialization: true
+
+  sql:
+    init:
+      mode: always
+      
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: true
+        
+  kafka:
+    bootstrap-servers: kafka:9092
+
+    listener:
+      missing-topics-fatal: false
+      ack-mode: record
+
+    consumer:
+      group-id: account-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+
+      properties:
+        spring.json.trusted.packages: "*"
+        spring.json.value.default.type: com.devsu.financial.account_service.infrastructure.messaging.events.CustomerCreatedEvent
+        spring.json.use.type.headers: false
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+resilience4j:
+  retry:
+    instances:
+      accountService:
+        max-attempts: 3
+        wait-duration: 500ms
+        retry-exceptions:
+          - java.io.IOException
+          - java.sql.SQLException
+        ignore-exceptions:
+          - com.devsu.financial.account_service.exceptions.InsufficientFundsException
+          - com.devsu.financial.account_service.exceptions.BadRequestException
+
+  circuitbreaker:
+    instances:
+      accountService:
+        sliding-window-size: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 5s
+
+  timelimiter:
+    instances:
+      accountService:
+        timeout-duration: 2s
+
+app:
+  create-default-account: ${CREATE_DEFAULT_ACCOUNT:true}
